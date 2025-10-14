@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(uuid())
+  username    String    @unique
+  email       String    @unique
+  password    String
+  snippets    Snippet[]
+  folders     Folder[]
+  reviews     Review[]  // Users can leave reviews
+  snippetShares SnippetShare[] // Users can share snippets
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([email])
+  @@index([username])
+}
+
+model Snippet {
+  snippet_id  String      @id @default(uuid())
+  title       String
+  code        String
+  language    String
+  description String?
+  user        User        @relation(fields: [userId], references: [id])
+  userId      String
+  folder      Folder?     @relation(fields: [folderId], references: [folder_id])
+  folderId    String?
+  tags        SnippetTag[]
+  reviews     Review[]    // Snippets can have multiple reviews
+  snippetShares SnippetShare[] // Snippets can be shared
+  isPublic    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime? 
+
+  @@index([userId])
+  @@index([folderId])
+  @@index([isPublic])
+  @@index([createdAt])
+}
+
+model Folder {
+  folder_id   String   @id @default(uuid())
+  name        String
+  parentId    String?  // Allows for nested folders
+  parent      Folder?  @relation("FolderParent", fields: [parentId], references: [folder_id])
+  children    Folder[] @relation("FolderParent") // Reverse relation for child folders
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  snippets    Snippet[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@index([userId])
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int      // Rating between 1 and 5
+  comment     String?  // Optional textual comment for the review
+  snippet     Snippet  @relation(fields: [snippetId], references: [snippet_id])
+  snippetId   String
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([snippetId, userId]) // Ensures each user can review a snippet only once
+}
+
+model Tag {
+  tag_id     String      @id @default(uuid())
+  name       String      @unique
+  snippets   SnippetTag[]
+  createdAt  DateTime    @default(now())
+}
+
+model SnippetTag {
+  snippetId  String
+  tagId      String
+  snippet    Snippet   @relation(fields: [snippetId], references: [snippet_id])
+  tag        Tag       @relation(fields: [tagId], references: [tag_id])
+
+  @@id([snippetId, tagId])
+  @@index([snippetId]) 
+  @@index([tagId])
+}
+
+model SnippetShare {
+  snippetId String
+  userId    String
+  snippet   Snippet @relation(fields: [snippetId], references: [snippet_id])
+  user      User    @relation(fields: [userId], references: [id])
+  sharedAt  DateTime @default(now())
+
+  @@id([snippetId, userId])
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  userId    String
+  timestamp DateTime @default(now())
+  ipAddress String
+  success   Boolean
+}
