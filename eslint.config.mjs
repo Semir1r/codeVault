@@ -1,34 +1,47 @@
 // @ts-check
-import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import { defineConfig } from 'eslint-define-config';
+import eslint from 'eslint';
+import eslintPluginPrettier from 'eslint-plugin-prettier';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import { parserOptions } from '@typescript-eslint/parser'; // Ensure TypeScript parser options
 
-export default tseslint.config(
-  {
-    ignores: ['eslint.config.mjs'],
+export default defineConfig({
+  root: true, // Ensures ESLint knows it's the root configuration
+  parser: '@typescript-eslint/parser', // Use the TypeScript parser for ESLint
+  parserOptions: {
+    project: './tsconfig.json', // Points to your tsconfig for TypeScript specific settings
+    tsconfigRootDir: __dirname, // Resolves relative paths
+    sourceType: 'module', // Allows ES Modules
   },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
-  {
-    languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      sourceType: 'commonjs',
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+  plugins: ['@typescript-eslint', 'prettier'], // Enable TypeScript and Prettier plugins
+  extends: [
+    'eslint:recommended', // ESLint base recommendations
+    'plugin:@typescript-eslint/recommended', // TypeScript specific rules
+    'plugin:prettier/recommended', // Integrates Prettier with ESLint
+  ],
+  env: {
+    node: true,
+    jest: true, // Enable Jest environment if you're using Jest for testing
+  },
+  rules: {
+    // Custom rules
+    '@typescript-eslint/no-explicit-any': 'off', // Disabling explicit 'any' rule
+    '@typescript-eslint/no-floating-promises': 'warn', // Warn on unhandled promises
+    '@typescript-eslint/no-unsafe-argument': 'warn', // Warn on unsafe arguments
+    'prettier/prettier': ['error', { singleQuote: true, semi: false }], // Prettier integration (optional)
+  },
+  overrides: [
+    {
+      files: ['*.ts', '*.tsx'], // Apply specific rules to TypeScript files
+      rules: {
+        '@typescript-eslint/explicit-module-boundary-types': 'off', // Disable module boundary type enforcement
       },
     },
-  },
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn'
+  ],
+  settings: {
+    globals: {
+      ...globals.node,
+      ...globals.jest, // Use Jest globals for testing
     },
   },
-);
+});
